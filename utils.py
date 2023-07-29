@@ -10,9 +10,9 @@ def train(model, loader, criterion, optimizer, ssl = False):
     for idx, (label, text, offsets) in enumerate(loader):
         if ssl:
             btsz = len(offsets) // 2
-            hi = model.forward(text, offsets[:btsz])
-            hj = model.forward(text, offsets[btsz:])
-            loss = criterion(hi, hj, label)
+            h = model.forward(text, offsets)
+            delta = F.pairwise_distance(h[:btsz], h[btsz:])
+            loss = criterion(delta, label)
         else:
             predicted_label = model(text, offsets)
             loss = criterion(predicted_label, label)
@@ -32,9 +32,9 @@ def eval(model, loader, criterion, ssl = False):
         for idx, (label, text, offsets) in enumerate(loader):
             if ssl:
                 btsz = len(offsets) // 2
-                hi = model.forward(text, offsets[:btsz])
-                hj = model.forward(text, offsets[btsz:])
-                loss = criterion(hi, hj, label)
+                h = model.forward(text, offsets)
+                delta = F.pairwise_distance(h[:btsz], h[btsz:])
+                loss = criterion(delta, label)
             else:
                 predicted_label = model(text, offsets)
                 loss = criterion(predicted_label, label)
@@ -67,3 +67,11 @@ def nomean(hi, hj, ncd):
 
     # return -F.cosine_similarity(vx, vy, dim = 0)
     return -F.cosine_similarity(delta, ncd, dim = 0)
+
+def pearson_delta(delta, ncd):
+    # delta = F.pairwise_distance(hi, hj)
+
+    vx = delta - torch.mean(delta)
+    vy = ncd - torch.mean(ncd)
+
+    return -F.cosine_similarity(vx, vy, dim = 0)

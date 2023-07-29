@@ -73,7 +73,9 @@ class AGNEWS():
         ncd_list = [self._ncd(x_i[i], x_j[i]) for i in range(btsz)]
         offsets = torch.tensor(offsets[:-1]).cumsum(dim=0)
         text_list = torch.cat(text_list)
-        return torch.tensor(ncd_list).to(device), text_list.to(device), offsets.to(device)
+        # return torch.tensor(ncd_list).to(device), text_list.to(device), offsets.to(device)
+        ncd = torch.tensor(ncd_list).to(device)
+        return ncd / torch.max(ncd), text_list.to(device), offsets.to(device)
     
     def _ncd(self, i, j):
         len_i_comp = len(gzip.compress(i.encode('utf-8')))
