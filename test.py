@@ -1,3 +1,20 @@
+import torch
+import torch.nn as nn
+import torch.optim as optim
+
+import matplotlib.pyplot as plt
+
+from tqdm import tqdm
+import numpy as np
+
+from models import TextClassificationModel, zip_ssl
+from datasets import AGNEWS
+from utils import train, eval, pearson, acc, nomean, pearson_delta
+
+EPOCHS = 30
+LR = 1e-3
+BATCH_SIZE = 2048
+EMBED_DIM = 64
 
 import torch
 
@@ -83,3 +100,59 @@ class AGNEWS():
         len_j_comp = len(gzip.compress(j.encode('utf-8')))
         len_ij_comp = len(gzip.compress((" ".join([i,j])).encode('utf-8')))
         return len_ij_comp - min(len_i_comp, len_j_comp) / max(len_i_comp, len_j_comp)
+
+
+
+ds = AGNEWS()
+
+from sklearn.neighbors import KNeighborsClassifier
+train_loader, val_loader, test_loader = ds.loader(BATCH_SIZE, ssl = True)
+final_htrain = []
+final_labels = []
+y_train = []
+for idx, (label, text, offsets, y) in enumerate(train_loader):
+    final_labels.append(label)
+    y_train.append(y.cpu().numpy())
+
+#final_htrain = np.concatenate(final_htrain, axis=0)
+final_labels = np.concatenate(final_labels, axis=0)
+y_train = np.concatenate(y_train, axis=0)
+
+from sklearn.neighbors import KNeighborsClassifier
+train_loader, val_loader, test_loader = ds.loader(BATCH_SIZE, ssl = True)
+final_labels_test = []
+y_test = []
+for idx, (label, text, offsets, y) in enumerate(test_loader):
+    #print (label)
+    final_labels_test.append(label)
+    y_test.append(y.cpu().numpy())
+
+#final_htrain = np.concatenate(final_htrain, axis=0)
+final_labels_test = np.concatenate(final_labels_test, axis=0)
+y_test = np.concatenate(y_test, axis=0)
+
+#calculate ncd of final_labels and calculate knn, as described in the algorithm from the paper
+k=2
+final_yhat = []
+for x1 in tqdm(final_labels_test):
+    c_x1 = len(gzip.compress(x1.encode('utf-8')))
+    distance_from_x1 = []
+    for x2 in (final_labels):
+        c_x2 = len(gzip.compress(x2.encode('utf-8')))
+        c_x1_x2 = len(gzip.compress((x1+x2).encode('utf-8')))
+        distance_from_x1.append((c_x1_x2 - min(c_x1, c_x2)) / max(c_x1, c_x2))
+
+    #calculate knn
+    sorted_idx = np.argsort(distance_from_x1)
+    topk_class = y_train[sorted_idx[:k]]
+    yhat = np.argmax(np.bincount(topk_class))
+    final_yhat.append(yhat)
+
+#calculate accuracy
+final_yhat = np.array(final_yhat)
+from sklearn.metrics import accuracy_score
+
+print("Accuracy: ", accuracy_score(y_test, final_yhat))
+    
+
+            
