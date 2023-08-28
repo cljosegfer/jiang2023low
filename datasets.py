@@ -39,12 +39,12 @@ class AGNEWS():
 
         if ssl:
             train_dataloader = DataLoader(split_train_, batch_size = BATCH_SIZE, shuffle = True, collate_fn = self._collate_sll)
-            valid_dataloader = DataLoader(split_valid_, batch_size = BATCH_SIZE, shuffle = True, collate_fn = self._collate_sll)
-            test_dataloader = DataLoader(test_dataset, batch_size = BATCH_SIZE, shuffle = True, collate_fn = self._collate_sll)
+            valid_dataloader = DataLoader(split_valid_, batch_size = BATCH_SIZE, shuffle = False, collate_fn = self._collate_sll)
+            test_dataloader = DataLoader(test_dataset, batch_size = BATCH_SIZE, shuffle = False, collate_fn = self._collate_sll)
         else:
             train_dataloader = DataLoader(split_train_, batch_size = BATCH_SIZE, shuffle = True, collate_fn = self._collate_batch)
-            valid_dataloader = DataLoader(split_valid_, batch_size = BATCH_SIZE, shuffle = True, collate_fn = self._collate_batch)
-            test_dataloader = DataLoader(test_dataset, batch_size = BATCH_SIZE, shuffle = True, collate_fn = self._collate_batch)
+            valid_dataloader = DataLoader(split_valid_, batch_size = BATCH_SIZE, shuffle = False, collate_fn = self._collate_batch)
+            test_dataloader = DataLoader(test_dataset, batch_size = BATCH_SIZE, shuffle = False, collate_fn = self._collate_batch)
 
         return train_dataloader, valid_dataloader, test_dataloader
 
@@ -76,7 +76,7 @@ class AGNEWS():
         text_list = torch.cat(text_list)
         ncd = torch.tensor(ncd_list).to(device)
         #return ncd / torch.max(ncd), text_list.to(device), offsets.to(device)
-        return raw_list, text_list.to(device), offsets.to(device), torch.tensor(label_list).to(device), ncd
+        return raw_list, text_list.to(device), offsets.to(device), torch.tensor(label_list).to(device), ncd / 1000
     
     def _ncd(self, i, j):
         len_i_comp = len(gzip.compress(i.encode('utf-8')))
