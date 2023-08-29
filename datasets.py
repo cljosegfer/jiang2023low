@@ -10,6 +10,7 @@ from torch.utils.data import DataLoader
 from torch.utils.data.dataset import random_split
 
 import gzip
+import numpy as np
 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
@@ -33,20 +34,26 @@ class AGNEWS():
         test_dataset = to_map_style_dataset(self.test_iter)
 
         num_train = int(len(train_dataset) * 0.95)
-        split_train_, split_valid_ = random_split(
+        self.split_train_, self.split_valid_ = random_split(
             train_dataset, [num_train, len(train_dataset) - num_train]
         )
 
         if ssl:
-            train_dataloader = DataLoader(split_train_, batch_size = BATCH_SIZE, shuffle = True, collate_fn = self._collate_sll)
-            valid_dataloader = DataLoader(split_valid_, batch_size = BATCH_SIZE, shuffle = False, collate_fn = self._collate_sll)
+            train_dataloader = DataLoader(self.split_train_, batch_size = BATCH_SIZE, shuffle = True, collate_fn = self._collate_sll)
+            valid_dataloader = DataLoader(self.split_valid_, batch_size = BATCH_SIZE, shuffle = False, collate_fn = self._collate_sll)
             test_dataloader = DataLoader(test_dataset, batch_size = BATCH_SIZE, shuffle = False, collate_fn = self._collate_sll)
         else:
-            train_dataloader = DataLoader(split_train_, batch_size = BATCH_SIZE, shuffle = True, collate_fn = self._collate_batch)
-            valid_dataloader = DataLoader(split_valid_, batch_size = BATCH_SIZE, shuffle = False, collate_fn = self._collate_batch)
+            train_dataloader = DataLoader(self.split_train_, batch_size = BATCH_SIZE, shuffle = True, collate_fn = self._collate_batch)
+            valid_dataloader = DataLoader(self.split_valid_, batch_size = BATCH_SIZE, shuffle = False, collate_fn = self._collate_batch)
             test_dataloader = DataLoader(test_dataset, batch_size = BATCH_SIZE, shuffle = False, collate_fn = self._collate_batch)
 
         return train_dataloader, valid_dataloader, test_dataloader
+    
+    def repair(self, BATCH_SIZE):
+        np.random.shuffle(self.split_train_.indices)
+        train_dataloader = DataLoader(self.split_train_, batch_size = BATCH_SIZE, shuffle = True, collate_fn = self._collate_sll)
+
+        return train_dataloader
 
     def _collate_batch(self, batch):
         label_list, text_list, offsets = [], [], [0]
